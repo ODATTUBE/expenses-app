@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, LineChart, Package, Users, Settings, ShoppingCart, ShieldCheck, Activity , LogOut, FileArchive } from 'lucide-react';
+import { LineChart, Settings, ShoppingCart, ShieldCheck, Activity , LogOut, FileArchive } from 'lucide-react';
 import { auth } from '../config/firebase'; 
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, collection, addDoc, getDocs, query, where } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import {Pencil, Trash2} from 'lucide-react';
 
 const Shares = () => {
     const { currentUser } = useAuth();
@@ -203,10 +203,10 @@ const Shares = () => {
                                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{share.broker}</td>
                                             <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                                                 <button onClick={() => handleEditShare(share.id)} className="text-blue-600 hover:text-blue-900 mr-2">
-                                                    <FaEdit />
+                                                    <Pencil />
                                                 </button>
                                                 <button onClick={() => handleDeleteShare(share.id)} className="text-red-600 hover:text-red-900">
-                                                    <FaTrash />
+                                                    <Trash2 />
                                                 </button>
                                             </td>
                                         </tr>

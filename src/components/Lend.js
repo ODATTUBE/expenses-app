@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, collection, addDoc, getDocs, deleteDoc, doc, query, where } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import {Pencil, Trash2} from 'lucide-react';
 
 const Lend = () => {
   const { currentUser } = useAuth();
@@ -10,6 +10,7 @@ const Lend = () => {
   const [beneficiary, setBeneficiary] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loanValue, setLoanValue] = useState('')
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +55,7 @@ const Lend = () => {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         status,
+        loanValue,
         userId: currentUser.uid,
       };
 
@@ -63,6 +65,7 @@ const Lend = () => {
       setBeneficiary('');
       setStartDate('');
       setEndDate('');
+      setLoanValue('');
       setStatus('pending');
     } catch (error) {
       console.error('Error adding loan:', error);
@@ -98,6 +101,7 @@ const Lend = () => {
     setBeneficiary(loanToEdit.beneficiary);
     setStartDate(loanToEdit.startDate.toISOString().split('T')[0]);
     setEndDate(loanToEdit.endDate.toISOString().split('T')[0]);
+    setLoanValue(loanToEdit.loanValue)
     setStatus(loanToEdit.status);
   };
 
@@ -202,10 +206,10 @@ const Lend = () => {
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                         <button onClick={() => handleEditLoan(loan.id)} className="text-blue-600 hover:text-blue-900 mr-2">
-                          <FaEdit />
+                          <Pencil />
                         </button>
                         <button onClick={() => handleDeleteLoan(loan.id)} className="text-red-600 hover:text-red-900">
-                          <FaTrash />
+                          <Trash2 />
                         </button>
                       </td>
                     </tr>
