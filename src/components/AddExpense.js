@@ -1,43 +1,95 @@
-import React, { useState } from 'react';
-import { db, addDoc, collection } from '../config/firebase';
+import React, { useState, useEffect } from 'react';
+import { db, addDoc, collection, getDocs } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import Select from 'react-select';
+import CustomModal from './CustomModal';
 
 const AddExpense = () => {
   const { currentUser } = useAuth();
-  const [title, setTitle] = useState('');
+  const navigate = useNavigate();
+  const [expenseItems, setExpenseItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [cost, setCost] = useState('');
   const [date, setDate] = useState('');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState('');
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchExpenseItems = async () => {
+      const querySnapshot = await getDocs(collection(db, 'expenseItems'));
+      const items = querySnapshot.docs.map(doc => ({
+        label: doc.data().title,
+        value: doc.id
+      }));
+      setExpenseItems(items);
+    };
+
+    fetchExpenseItems();
+  }, [currentUser, navigate]);
+
+  const handleAddItem = async () => {
+    if (!currentUser) {
+      alert('You must be logged in to add an expense item.');
+      navigate('/login');
+      return;
+    }
+
+    if (!newItemTitle.trim()) {
+      alert('Please enter a title for the new item.');
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, 'expenseItems'), {
+        title: newItemTitle,
+        userId: currentUser.uid,
+      });
+      const newItem = { label: newItemTitle, value: docRef.id };
+      setExpenseItems([...expenseItems, newItem]);
+      setSelectedItem(newItem);
+      setNewItemTitle('');
+      setModalIsOpen(false);
+    } catch (error) {
+      console.error('Error adding expense item:', error);
+      alert('Failed to add item. Please try again.');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (title.trim() === '' || cost.trim() === '' || date.trim() === '') {
+
+    if (!currentUser) {
+      alert('You must be logged in to add an expense.');
+      navigate('/login');
+      return;
+    }
+
+    if (!selectedItem || cost.trim() === '' || date.trim() === '') {
       alert('Please fill in all required fields.');
       return;
     }
 
     setLoading(true);
     try {
-      // Ensure the current user is logged in
-      if (!currentUser) {
-        alert('You must be logged in to add an expense.');
-        setLoading(false);
-        return;
-      }
-
-      // Add the expense with the user's ID
       await addDoc(collection(db, 'expenses'), {
-        userId: currentUser.uid, // Associate the expense with the logged-in user's ID
-        title,
+        userId: currentUser.uid,
+        title: selectedItem.label,
         cost: parseFloat(cost),
         date: new Date(date),
         note,
-        id: Date.now().toString(),
+        itemId: selectedItem.value,
       });
 
-      setTitle('');
+      setSelectedItem(null);
       setCost('');
       setDate('');
       setNote('');
@@ -50,22 +102,32 @@ const AddExpense = () => {
     }
   };
 
+  if (!currentUser) {
+    return <div>Please log in to add expenses.</div>;
+  }
+
   return (
-    <div className="flex justify-center items-center" >
+    <div className="flex justify-center items-center">
       <Sidebar />
       <div className="p-4" style={{ maxWidth: '26rem' }}>
-
         <h1 className="text-xl font-semibold">Add Expense</h1>
         <form onSubmit={handleSubmit} className="mt-4">
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
+            <label className="block text-sm font-medium text-gray-700">Expense Item</label>
+            <Select
+              value={selectedItem}
+              onChange={setSelectedItem}
+              options={expenseItems}
+              isSearchable
+              className="w-full mt-1"
             />
+            <button
+              type="button"
+              onClick={() => setModalIsOpen(true)}
+              className="mt-2 text-blue-500 underline"
+            >
+              Add New Item
+            </button>
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">Cost</label>
@@ -73,7 +135,7 @@ const AddExpense = () => {
               type="number"
               value={cost}
               onChange={(e) => setCost(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
               required
             />
           </div>
@@ -83,7 +145,7 @@ const AddExpense = () => {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
               required
             />
           </div>
@@ -92,21 +154,35 @@ const AddExpense = () => {
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
               rows="3"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-black dark:bg-gray-600 text-white rounded-md hover:bg-gray-700 dark:hover:bg-gray-500 focus:outline-none focus:bg-blue-700 dark:focus:bg-blue-600 transition duration-150"
+            className="w-full py-2 px-4 bg-black text-white rounded-md hover:bg-gray-700 focus:outline-none focus:bg-blue-700 transition duration-150"
             disabled={loading}
           >
             {loading ? 'Adding...' : 'Add Expense'}
           </button>
         </form>
+
+        <CustomModal
+          isOpen={modalIsOpen}
+          onClose={() => setModalIsOpen(false)}
+          onSubmit={handleAddItem}
+        >
+          <h2 className="text-lg font-semibold mb-4">Add New Expense Item</h2>
+          <input
+            type="text"
+            value={newItemTitle}
+            onChange={(e) => setNewItemTitle(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
+            placeholder="Enter item title"
+          />
+        </CustomModal>
       </div>
     </div>
-
   );
 };
 

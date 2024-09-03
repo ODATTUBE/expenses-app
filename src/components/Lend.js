@@ -10,7 +10,8 @@ const Lend = () => {
   const [beneficiary, setBeneficiary] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [loanValue, setLoanValue] = useState('')
+  const [loanValue, setLoanValue] = useState('');
+  const [loanAmount, setLoanAmount] = useState(''); // New state for Loan Amount
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(false);
 
@@ -41,31 +42,31 @@ const Lend = () => {
 
   const handleAddLoan = async (e) => {
     e.preventDefault();
-
-    if (!beneficiary || !startDate || !endDate || !status) {
+  
+    if (!beneficiary || !startDate || !endDate || !status || !loanAmount) {
       alert('يرجى تعبئة جميع الحقول');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const newLoan = {
         beneficiary,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         status,
-        loanValue,
+        loanAmount, // Use loanAmount directly
         userId: currentUser.uid,
       };
-
+  
       await addDoc(collection(db, 'loans'), newLoan);
-
+  
       setLoans(prevLoans => [...prevLoans, { ...newLoan, id: Date.now().toString() }]);
       setBeneficiary('');
       setStartDate('');
       setEndDate('');
-      setLoanValue('');
+      setLoanAmount(''); // Reset the loanAmount input
       setStatus('pending');
     } catch (error) {
       console.error('Error adding loan:', error);
@@ -73,22 +74,17 @@ const Lend = () => {
       setLoading(false);
     }
   };
+  
 
   const handleDeleteLoan = async (id) => {
     const confirmDelete = window.confirm('هل أنت متأكد من حذف هذا القرض؟');
     if (!confirmDelete) return;
-  
+
     try {
-      // Reference to the document to be deleted
       const loanDocRef = doc(db, 'loans', id);
-      
-      // Delete the document from Firestore
       await deleteDoc(loanDocRef);
-  
-      // Update the local state
       const updatedLoans = loans.filter(loan => loan.id !== id);
       setLoans(updatedLoans);
-  
       alert('تم حذف القرض بنجاح');
     } catch (error) {
       console.error('Error deleting loan: ', error);
@@ -101,7 +97,8 @@ const Lend = () => {
     setBeneficiary(loanToEdit.beneficiary);
     setStartDate(loanToEdit.startDate.toISOString().split('T')[0]);
     setEndDate(loanToEdit.endDate.toISOString().split('T')[0]);
-    setLoanValue(loanToEdit.loanValue)
+    setLoanValue(loanToEdit.loanValue);
+    setLoanAmount(loanToEdit.loanAmount); // Set the loanAmount state
     setStatus(loanToEdit.status);
   };
 
@@ -168,6 +165,17 @@ const Lend = () => {
                   <option value="بالانتظار">بالانتظار</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">قيمة القرض</label>
+                <input
+                  type="number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={loanAmount}
+                  onChange={(e) => setLoanAmount(e.target.value)}
+                  placeholder="قيمة القرض"
+                />
+              </div>
   
               <button
                 type="submit"
@@ -189,27 +197,31 @@ const Lend = () => {
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white dark:bg-gray-800">
                   {loans.map((loan) => (
                     <tr key={loan.id}>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{loan.beneficiary}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {loan.startDate.toLocaleDateString('en-jo', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {loan.endDate.toLocaleDateString('en-jo', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(loan.status)}`}>
+                      <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{loan.beneficiary}</td>
+                      <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{loan.startDate.toISOString().split('T')[0]}</td>
+                      <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{loan.endDate.toISOString().split('T')[0]}</td>
+                      <td className="px-4 py-2 text-sm">
+                        <span
+                          className={`inline-flex px-2 text-xs leading-5 font-semibold rounded-full ${getStatusColor(loan.status)}`}
+                        >
                           {loan.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
-                        <button onClick={() => handleEditLoan(loan.id)} className="text-blue-600 hover:text-blue-900 mr-2">
-                          <Pencil />
+                      <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 flex space-x-2">
+                        <button
+                          onClick={() => handleEditLoan(loan.id)}
+                          className="text-gray-400 hover:text-blue-500"
+                        >
+                          <Pencil size={20} />
                         </button>
-                        <button onClick={() => handleDeleteLoan(loan.id)} className="text-red-600 hover:text-red-900">
-                          <Trash2 />
+                        <button
+                          onClick={() => handleDeleteLoan(loan.id)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 size={20} />
                         </button>
                       </td>
                     </tr>
@@ -217,6 +229,7 @@ const Lend = () => {
                 </tbody>
               </table>
             </div>
+  
           </div>
         </div>
       </div>
