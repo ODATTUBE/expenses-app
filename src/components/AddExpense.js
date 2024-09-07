@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, addDoc, collection, getDocs } from '../config/firebase';
+import { db, addDoc, collection, getDocs, query, where } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -25,12 +25,21 @@ const AddExpense = () => {
     }
 
     const fetchExpenseItems = async () => {
-      const querySnapshot = await getDocs(collection(db, 'expenseItems'));
-      const items = querySnapshot.docs.map(doc => ({
-        label: doc.data().title,
-        value: doc.id
-      }));
-      setExpenseItems(items);
+      try {
+        // Create a query that filters expense items by the current user's UID
+        const expenseItemsQuery = query(
+          collection(db, 'expenseItems'),
+          where('userId', '==', currentUser.uid)
+        );
+        const querySnapshot = await getDocs(expenseItemsQuery);
+        const items = querySnapshot.docs.map(doc => ({
+          label: doc.data().title,
+          value: doc.id,
+        }));
+        setExpenseItems(items);
+      } catch (error) {
+        console.error('Error fetching expense items:', error);
+      }
     };
 
     fetchExpenseItems();
@@ -54,7 +63,7 @@ const AddExpense = () => {
         userId: currentUser.uid,
       });
       const newItem = { label: newItemTitle, value: docRef.id };
-      setExpenseItems([...expenseItems, newItem]);
+      setExpenseItems(prevItems => [...prevItems, newItem]);
       setSelectedItem(newItem);
       setNewItemTitle('');
       setModalIsOpen(false);
@@ -120,6 +129,7 @@ const AddExpense = () => {
               options={expenseItems}
               isSearchable
               className="w-full mt-1"
+              placeholder="Select an item"
             />
             <button
               type="button"
@@ -180,6 +190,14 @@ const AddExpense = () => {
             className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
             placeholder="Enter item title"
           />
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={handleAddItem}
+              className="py-2 px-4 bg-black text-white rounded-md hover:bg-gray-700 focus:outline-none focus:bg-blue-700 transition duration-150"
+            >
+              Add Item
+            </button>
+          </div>
         </CustomModal>
       </div>
     </div>
