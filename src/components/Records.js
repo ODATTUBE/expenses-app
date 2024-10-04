@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { db, getDocs, query, where, orderBy, getDoc, collection, addDoc } from '../config/firebase';
+import { db, getDocs, query, where, orderBy, collection } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
-import { Pencil, Trash2 } from 'lucide-react';
-import EditExpense from './EditExpense'; // Import the EditExpense component
+import { Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import EditExpense from './EditExpense';
+import Select from 'react-select';
 
 const Record = () => {
   const { currentUser } = useAuth();
@@ -13,7 +14,10 @@ const Record = () => {
   const [endDate, setEndDate] = useState('');
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [total, setTotal] = useState(0);
-  const [editingExpense, setEditingExpense] = useState(null); // State to manage the expense being edited
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [expenseItems, setExpenseItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -38,6 +42,18 @@ const Record = () => {
         setExpenses(expensesData);
         setFilteredExpenses(expensesData);
         calculateTotal(expensesData);
+
+        // Fetch expense items
+        const expenseItemsQuery = query(
+          collection(db, 'expenseItems'),
+          where('userId', '==', currentUser.uid)
+        );
+        const expenseItemsSnapshot = await getDocs(expenseItemsQuery);
+        const items = expenseItemsSnapshot.docs.map(doc => ({
+          label: doc.data().title,
+          value: doc.id,
+        }));
+        setExpenseItems(items);
       } catch (error) {
         console.error('Error fetching expenses:', error);
       } finally {
@@ -50,7 +66,7 @@ const Record = () => {
 
   useEffect(() => {
     filterExpenses();
-  }, [startDate, endDate, expenses]);
+  }, [startDate, endDate, expenses, selectedItem]);
 
   const filterExpenses = () => {
     let filtered = expenses;
@@ -58,9 +74,12 @@ const Record = () => {
       const start = new Date(startDate);
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999); // Set to end of day
-      filtered = expenses.filter(expense => 
+      filtered = filtered.filter(expense => 
         expense.date >= start && expense.date <= end
       );
+    }
+    if (selectedItem) {
+      filtered = filtered.filter(expense => expense.itemId === selectedItem.value);
     }
     setFilteredExpenses(filtered);
     calculateTotal(filtered);
@@ -91,7 +110,11 @@ const Record = () => {
         expense.id === updatedExpense.id ? updatedExpense : expense
       )
     );
-    setEditingExpense(null); // Close the edit form
+    setEditingExpense(null);
+  };
+
+  const toggleNotes = () => {
+    setShowNotes(!showNotes);
   };
 
   return (
@@ -107,8 +130,8 @@ const Record = () => {
           ) : (
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 p-6">سجل المصروفات</h2>
-              <div className="px-6 pb-4 flex justify-between items-center">
-                <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <div className="px-6 pb-4 flex flex-wrap justify-between items-center">
+                <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2">
                   <label htmlFor="start-date" className="text-gray-600 dark:text-gray-400">من:</label>
                   <input
                     id="start-date"
@@ -118,7 +141,7 @@ const Record = () => {
                     className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                   />
                 </div>
-                <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2">
                   <label htmlFor="end-date" className="text-gray-600 dark:text-gray-400">إلى:</label>
                   <input
                     id="end-date"
@@ -128,11 +151,31 @@ const Record = () => {
                     className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                   />
                 </div>
+                <div className="flex items-center space-x-4 rtl:space-x-reverse mb-2">
+                  <label htmlFor="item-filter" className="text-gray-600 dark:text-gray-400">تصفية حسب البند:</label>
+                  <Select
+                    id="item-filter"
+                    value={selectedItem}
+                    onChange={setSelectedItem}
+                    options={expenseItems}
+                    isSearchable
+                    className="w-48"
+                    placeholder="اختر بندًا"
+                    isClearable
+                  />
+                </div>
               </div>
-              <div className="px-6 pb-4">
+              <div className="px-6 pb-4 flex justify-between items-center">
                 <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   إجمالي المصروفات: {total.toFixed(2)}
                 </p>
+                <button
+                  onClick={toggleNotes}
+                  className="flex items-center text-blue-500 hover:text-blue-700"
+                >
+                  {showNotes ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <span className="mr-2">{showNotes ? 'إخفاء الملاحظات' : 'إظهار الملاحظات'}</span>
+                </button>
               </div>
               {loading ? (
                 <p className="text-gray-600 dark:text-gray-400 px-6 pb-6">جاري التحميل...</p>
@@ -146,6 +189,7 @@ const Record = () => {
                         <th className="px-4 py-2 text-right text-gray-600 dark:text-gray-200">العنوان</th>
                         <th className="px-4 py-2 text-right text-gray-600 dark:text-gray-200">التكلفة</th>
                         <th className="px-4 py-2 text-right text-gray-600 dark:text-gray-200">التاريخ</th>
+                        {showNotes && <th className="px-4 py-2 text-right text-gray-600 dark:text-gray-200">الملاحظات</th>}
                         <th className="px-4 py-2 text-right text-gray-600 dark:text-gray-200">الإجراءات</th>
                       </tr>
                     </thead>
@@ -157,6 +201,7 @@ const Record = () => {
                           <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
                             {expense.date.toLocaleDateString('en-ae', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                           </td>
+                          {showNotes && <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">{expense.note}</td>}
                           <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
                             <button
                               onClick={() => handleEdit(expense.id)}
