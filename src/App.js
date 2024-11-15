@@ -7,6 +7,8 @@ import Settings from "./components/Settings";
 import Records from "./components/Records";
 import Lend from "./components/Lend";
 import Shares from "./components/Shares";
+import RoscaManager from "./components/RoscaManager";
+import RoscaDoc from "./components/RoscaDoc";
 
 function App() {
   return (
@@ -23,6 +25,9 @@ function App() {
           <Route path="/records" element={<Records />} />
           <Route path="/lend" element={<Lend />} />
           <Route path="/shares" element={<Shares />} />
+          <Route path="/rosca" element={<RoscaManager />} />
+          <Route path="/rosca/:roscaId" element={<RoscaDoc />} />
+
         </Routes>
       </div>
     </Router>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LineChart, Settings, ShoppingCart, ShieldCheck, Activity , LogOut, FileArchive } from 'lucide-react';
+import { LineChart, Settings, ShoppingCart, ShieldCheck, Activity , LogOut, FileArchive, Handshake } from 'lucide-react';
 import { auth } from '../config/firebase'; 
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +50,10 @@ const Sidebar = () => {
             <Link to="/" onClick={closeSidebar} disabled className="flex items-center justify-end gap-2 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
                 <span className="mr-2">التحليلات</span>
                 <LineChart className="h-5 w-5" />
+            </Link>
+            <Link to="/rosca" onClick={closeSidebar} className="flex items-center justify-end gap-2 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
+              <span className="mr-2">الجمعية</span>
+              <Handshake className="h-5 w-5" />
             </Link>
             <Link to="/settings" onClick={closeSidebar} className="flex items-center justify-end gap-2 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
               <span className="mr-2">الإعدادات</span>
